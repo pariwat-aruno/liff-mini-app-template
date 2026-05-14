@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>[BRAND_NAME]</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body style="background:#f1f5f9; color:#0f172a; min-height:100vh; margin:0;">
+
+<div class="container">
+
+  <div id="mock-banner" class="mock-banner">Local dev mode — using mock LIFF</div>
+
+  <header class="header">
+    <div class="header-brand">
+      <img src="img/logo.jpg" alt="" class="header-logo" onerror="this.style.display='none'">
+      <div style="line-height:1.2; text-align:left;">
+        <div class="font-brand" style="font-weight:700; font-size:20px;">[BRAND_NAME]</div>
+        <div style="font-size:11px; opacity:0.85;">[TAGLINE]</div>
+      </div>
+    </div>
+    <div style="margin-top:24px;">
+      <div class="header-eyebrow">
+        สวัสดี · <span id="user-greeting">กำลังโหลด...</span>
+      </div>
+      <h1 class="header-title">เมนูหลัก</h1>
+      <div class="header-subtitle">เลือกบริการที่ต้องการ</div>
+    </div>
+  </header>
+
+  <main class="with-overlap">
+
+    <!-- Visitor section (shown when not paired) -->
+    <div id="section-visitor"></div>
+
+    <!-- Self section (work tools for paired users) -->
+    <p class="section-heading" id="heading-self" style="display:none;">งานของฉัน</p>
+    <div id="section-self"></div>
+
+    <!-- HR section -->
+    <p class="section-heading" id="heading-hr" style="display:none;">เครื่องมือแอดมิน</p>
+    <div id="section-hr"></div>
+
+    <!-- Owner section -->
+    <p class="section-heading" id="heading-owner" style="display:none;">สำหรับเจ้าของ</p>
+    <div id="section-owner"></div>
+
+    <!-- Error fallback -->
+    <div id="error-banner" class="alert error" style="display:none;"></div>
+
+  </main>
+
+  <div class="page-footer">[BRAND_NAME]</div>
+
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/menu-config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/api.js"></script>
+<script src="js/utils.js"></script>
+<script>
+(async function init() {
+  const liffId = (window.PAYROLL_CONFIG && window.PAYROLL_CONFIG.LIFF_ID) ||
+                 Utils.getQueryParam('liffId') || '';
+
+  try {
+    await Auth.init(liffId);
+    if (Auth.isMock()) document.getElementById('mock-banner').classList.add('visible');
+
+    const profile = await Auth.getProfile();
+    document.getElementById('user-greeting').textContent = profile.displayName || '—';
+
+    let me;
+    try {
+      me = await Api.getMe(Auth.getIDToken());
+    } catch (err) {
+      console.error('getMe failed:', err);
+      // Visitor fallback — at least show pair card
+      me = { role: 'visitor', capabilities: ['pair', 'repair'] };
+    }
+
+    renderMenu(me);
+  } catch (err) {
+    document.getElementById('user-greeting').textContent = '—';
+    const banner = document.getElementById('error-banner');
+    banner.style.display = 'block';
+    banner.textContent = Utils.errorToMessage(err.message || String(err));
+  }
+})();
+
+function renderMenu(me) {
+  const sections = { visitor: [], self: [], hr: [], owner: [] };
+
+  // Filter menu items by capability
+  window.PAYROLL_MENU.forEach(item => {
+    if (window.hasAnyCapability(me.capabilities, item.requires)) {
+      sections[item.section] = sections[item.section] || [];
+      sections[item.section].push(item);
+    }
+  });
+
+  // Visitor section shown only if user has no other section
+  // (an unpaired user gets section=visitor with role=visitor)
+  if (me.role === 'visitor' && sections.visitor.length > 0) {
+    document.getElementById('section-visitor').innerHTML = sections.visitor.map(renderCard).join('');
+  }
+
+  if (sections.self.length > 0 && me.role !== 'visitor') {
+    document.getElementById('heading-self').style.display = '';
+    document.getElementById('section-self').innerHTML = sections.self.map(renderCard).join('');
+  }
+
+  if (sections.hr.length > 0) {
+    document.getElementById('heading-hr').style.display = '';
+    document.getElementById('section-hr').innerHTML = sections.hr.map(renderCard).join('');
+  }
+
+  if (sections.owner.length > 0) {
+    document.getElementById('heading-owner').style.display = '';
+    document.getElementById('section-owner').innerHTML = sections.owner.map(renderCard).join('');
+  }
+
+  // Wire navigation
+  document.querySelectorAll('.menu-card[data-page]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      Auth.navTo(el.getAttribute('data-page'));
+    });
+  });
+}
+
+function renderCard(item) {
+  const badge = item.badge
+    ? `<span class="pill ${item.section === 'owner' ? 'owner' : (item.section === 'hr' ? 'hr' : 'staff')}">${item.badge}</span>`
+    : '';
+  return `
+    <a class="menu-card" data-page="${item.page}" href="${item.page}">
+      <div class="icon-box ${item.color || 'slate'}">${item.icon}</div>
+      <div style="flex:1;">
+        <div class="card-title">${item.label}${badge}</div>
+        <div class="card-subtitle">${item.subtitle}</div>
+      </div>
+    </a>
+  `;
+}
+</script>
+</body>
+</html>

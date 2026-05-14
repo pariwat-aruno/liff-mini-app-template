@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>LINE User ID — [BRAND_NAME]</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Poppins:wght@500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body style="background:#f1f5f9; color:#0f172a; min-height:100vh; margin:0;">
+
+<div class="container">
+
+  <div id="mock-banner" class="mock-banner">Local dev mode — using mock LIFF</div>
+
+  <header class="header">
+    <div class="header-brand">
+      <img src="img/logo.jpg" alt="" class="header-logo" onerror="this.style.display='none'">
+      <div style="line-height:1.2; text-align:left;">
+        <div class="font-brand" style="font-weight:700; font-size:18px;">[BRAND_NAME]</div>
+      </div>
+    </div>
+    <div style="margin-top:24px;">
+      <div class="header-eyebrow">LINE User ID</div>
+      <h1 class="header-title">รหัสของคุณ</h1>
+      <div class="header-subtitle">ส่งให้แอดมินเพื่อเพิ่มสิทธิ์</div>
+    </div>
+  </header>
+
+  <main class="with-overlap" id="main">
+    <div class="form-section" style="text-align:center;">
+      <div style="color:#64748b; font-size:14px;">กำลังโหลด...</div>
+    </div>
+  </main>
+
+  <div class="page-footer">[BRAND_NAME]</div>
+
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/utils.js"></script>
+<script>
+(async function init() {
+  const liffId = (window.PAYROLL_CONFIG && window.PAYROLL_CONFIG.LIFF_ID) ||
+                 Utils.getQueryParam('liffId') || '';
+  try {
+    await Auth.init(liffId);
+    if (Auth.isMock()) document.getElementById('mock-banner').classList.add('visible');
+
+    const profile = await Auth.getProfile();
+    document.getElementById('main').innerHTML = `
+      <div class="form-section">
+        <div style="text-align:center;">
+          <div style="width:64px; height:64px; margin:0 auto 12px; background:#dcfce7; border-radius:50%;
+                      display:flex; align-items:center; justify-content:center; font-size:32px;">🆔</div>
+          <div style="font-weight:600;">${profile.displayName}</div>
+        </div>
+
+        <label class="form-label" style="margin-top:20px;">LINE User ID</label>
+        <div id="userid-display" style="background:#f8fafc; border:1px solid #e2e8f0;
+                                        padding:12px; border-radius:8px; font-family:'JetBrains Mono';
+                                        font-size:13px; word-break:break-all; line-height:1.5;">
+          ${profile.userId}
+        </div>
+
+        <button id="copy-btn" class="btn-primary" style="margin-top:16px;">📋 คัดลอก User ID</button>
+
+        <div style="margin-top:16px; padding:12px; background:#fef3c7; border-radius:8px; font-size:12px; color:#92400e; line-height:1.5;">
+          💡 ส่ง ID นี้ให้แอดมินผ่าน LINE chat<br>
+          แอดมินจะใช้เพิ่มสิทธิ์คุณในระบบ
+        </div>
+      </div>
+
+      <button class="btn-secondary" onclick="Auth.navTo('index.html')">กลับเมนูหลัก</button>
+    `;
+    document.getElementById('copy-btn').addEventListener('click', (e) => {
+      Utils.copyToClipboard(profile.userId, e.currentTarget);
+    });
+  } catch (err) {
+    document.getElementById('main').innerHTML = `
+      <div class="alert error">${Utils.errorToMessage(err.message || String(err))}</div>
+    `;
+  }
+})();
+</script>
+</body>
+</html>

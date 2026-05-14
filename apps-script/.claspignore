@@ -1,0 +1,7 @@
+# clasp ignore
+node_modules/**
+package.json
+package-lock.json
+.clasp.json
+.claspignore
+README.md

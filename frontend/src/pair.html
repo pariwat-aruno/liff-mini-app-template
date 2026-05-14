@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>ผูกบัญชี LINE — [BRAND_NAME]</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Poppins:wght@500;600;700&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body style="background:#f1f5f9; color:#0f172a; min-height:100vh; margin:0;">
+
+<div class="container">
+
+  <div id="mock-banner" class="mock-banner">Local dev mode — using mock LIFF</div>
+
+  <header class="header">
+    <div class="header-brand">
+      <img src="img/logo.jpg" alt="" class="header-logo" onerror="this.style.display='none'">
+      <div style="line-height:1.2; text-align:left;">
+        <div class="font-brand" style="font-weight:700; font-size:18px;">[BRAND_NAME]</div>
+        <div style="font-size:11px; opacity:0.85;">[TAGLINE]</div>
+      </div>
+    </div>
+    <div style="margin-top:24px;">
+      <div class="header-eyebrow">ผูกบัญชี LINE</div>
+      <h1 class="header-title">ครั้งแรกใช้งาน</h1>
+      <div class="header-subtitle">ใส่รหัสที่แอดมินส่งให้</div>
+    </div>
+  </header>
+
+  <main class="with-overlap" id="main">
+    <div class="form-section" style="text-align:center;">
+      <div style="color:#64748b; font-size:14px;">กำลังตรวจสอบ...</div>
+    </div>
+  </main>
+
+  <div class="page-footer">[BRAND_NAME]</div>
+
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/api.js"></script>
+<script src="js/utils.js"></script>
+<script>
+let prefilledEmp = null;
+let prefilledCode = null;
+let userProfile = null;
+
+(async function init() {
+  const liffId = (window.PAYROLL_CONFIG && window.PAYROLL_CONFIG.LIFF_ID) ||
+                 Utils.getQueryParam('liffId') || '';
+  try {
+    await Auth.init(liffId);
+    if (Auth.isMock()) document.getElementById('mock-banner').classList.add('visible');
+
+    userProfile = await Auth.getProfile();
+
+    // Check if already paired
+    const me = await Api.getMe(Auth.getIDToken());
+    if (me.emp_code) {
+      renderAlreadyPaired(me);
+      return;
+    }
+
+    // Pre-filled link path?
+    prefilledEmp = Utils.getQueryParam('emp');
+    prefilledCode = Utils.getQueryParam('c');
+
+    if (prefilledEmp && prefilledCode) {
+      renderConfirmStep();
+    } else {
+      renderForm();
+    }
+  } catch (err) {
+    renderError(Utils.errorToMessage(err.message || String(err)));
+  }
+})();
+
+/* ============================================================
+ * Already paired
+ * ============================================================ */
+function renderAlreadyPaired(me) {
+  document.getElementById('main').innerHTML = `
+    <div class="alert success">
+      <div style="font-weight:600; font-size:16px;">ผูกบัญชีแล้ว</div>
+      <div style="margin-top:6px; font-size:14px;">
+        ${me.display_name || me.emp_code} (${me.role})
+      </div>
+    </div>
+    <button class="btn-primary" onclick="Auth.navTo('index.html')">กลับเมนูหลัก</button>
+  `;
+}
+
+/* ============================================================
+ * Confirmation step (Level 2 - pre-filled link)
+ * ============================================================ */
+function renderConfirmStep() {
+  document.getElementById('main').innerHTML = `
+    <div class="form-section">
+      <div class="header-eyebrow" style="color:#64748b; text-align:center;">ยืนยันตัวตน</div>
+      <div style="text-align:center; margin-top:16px;">
+        <div style="font-size:14px; color:#64748b;">คุณคือพนักงานคนนี้ใช่ไหม?</div>
+        <div style="font-family:'JetBrains Mono'; font-size:28px; font-weight:600; margin-top:12px; color:#0F6E56;">
+          ${prefilledEmp}
+        </div>
+        <div style="font-size:12px; color:#94a3b8; margin-top:8px;">
+          LINE ของคุณ: ${userProfile.displayName}
+        </div>
+      </div>
+    </div>
+
+    <button id="confirm-btn" class="btn-primary">✓ ใช่ ผูกบัญชี</button>
+    <button class="btn-secondary" onclick="renderForm()">❌ ไม่ใช่ฉัน · กรอกใหม่</button>
+
+    <p id="status-message" class="status-message"></p>
+  `;
+  document.getElementById('confirm-btn').addEventListener('click', () =>
+    submitPair(prefilledEmp, prefilledCode));
+}
+
+/* ============================================================
+ * Manual form (no pre-fill)
+ * ============================================================ */
+function renderForm() {
+  document.getElementById('main').innerHTML = `
+    <div class="form-section">
+      <label class="form-label">รหัสพนักงาน</label>
+      <input id="emp-input" class="form-input emp-input" placeholder="เช่น EMP001"
+             autocomplete="off" value="${prefilledEmp || ''}">
+
+      <label class="form-label" style="margin-top:16px;">รหัสผูก (6 หลัก)</label>
+      <input id="code-input" class="form-input code-input" maxlength="6" inputmode="numeric"
+             pattern="\\d{6}" placeholder="000000" value="${prefilledCode || ''}">
+      <div class="form-hint">รหัสมีอายุ 24 ชั่วโมงนับจากแอดมินสร้าง</div>
+    </div>
+
+    <button id="submit-btn" class="btn-primary">ผูกบัญชี</button>
+
+    <p id="status-message" class="status-message"></p>
+  `;
+  document.getElementById('submit-btn').addEventListener('click', () => {
+    const emp = document.getElementById('emp-input').value.trim().toUpperCase();
+    const code = document.getElementById('code-input').value.trim();
+    submitPair(emp, code);
+  });
+}
+
+/* ============================================================
+ * Submit
+ * ============================================================ */
+async function submitPair(empCode, code) {
+  const status = document.getElementById('status-message');
+  const btn = document.getElementById('confirm-btn') || document.getElementById('submit-btn');
+
+  Utils.clearStatus(status);
+  if (!empCode || !code) {
+    Utils.showError(status, 'กรอกข้อมูลให้ครบ');
+    return;
+  }
+  if (!/^\d{6}$/.test(code)) {
+    Utils.showError(status, 'รหัสผูกต้องเป็นตัวเลข 6 หลัก');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'กำลังตรวจสอบ...';
+
+  try {
+    const result = await Api.redeemPairingCode(Auth.getIDToken(), {
+      emp_code: empCode,
+      code,
+    });
+    renderSuccess(result);
+  } catch (err) {
+    Utils.showError(status, Utils.errorToMessage(err.message || String(err)));
+    btn.disabled = false;
+    btn.textContent = prefilledEmp ? '✓ ใช่ ผูกบัญชี' : 'ผูกบัญชี';
+  }
+}
+
+function renderSuccess(result) {
+  document.getElementById('main').innerHTML = `
+    <div class="alert success">
+      <div style="font-size:32px; margin-bottom:8px;">✅</div>
+      <div style="font-weight:600; font-size:16px;">ผูกบัญชีสำเร็จ</div>
+      <div style="margin-top:6px; font-size:14px;">
+        ยินดีต้อนรับ ${result.full_name}
+      </div>
+      <div style="margin-top:4px; font-size:12px; color:#14532d; opacity:0.8;">
+        บทบาท: ${result.role}
+      </div>
+    </div>
+    <button class="btn-primary" onclick="Auth.navTo('index.html')">เริ่มใช้งาน</button>
+  `;
+}
+
+function renderError(msg) {
+  document.getElementById('main').innerHTML = `
+    <div class="alert error">${msg}</div>
+    <button class="btn-secondary" onclick="location.reload()">ลองใหม่</button>
+  `;
+}
+</script>
+</body>
+</html>

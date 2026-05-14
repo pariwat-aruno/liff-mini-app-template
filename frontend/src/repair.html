@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>ขอผูกบัญชีใหม่ — [BRAND_NAME]</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Poppins:wght@500;600;700&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body style="background:#f1f5f9; color:#0f172a; min-height:100vh; margin:0;">
+
+<div class="container">
+
+  <div id="mock-banner" class="mock-banner">Local dev mode — using mock LIFF</div>
+
+  <header class="header">
+    <div class="header-brand">
+      <img src="img/logo.jpg" alt="" class="header-logo" onerror="this.style.display='none'">
+      <div style="line-height:1.2; text-align:left;">
+        <div class="font-brand" style="font-weight:700; font-size:18px;">[BRAND_NAME]</div>
+        <div style="font-size:11px; opacity:0.85;">[TAGLINE]</div>
+      </div>
+    </div>
+    <div style="margin-top:24px;">
+      <div class="header-eyebrow">เปลี่ยน LINE Account</div>
+      <h1 class="header-title">ขอผูกใหม่</h1>
+      <div class="header-subtitle">แอดมินต้องอนุมัติก่อน</div>
+    </div>
+  </header>
+
+  <main class="with-overlap" id="main">
+    <div class="form-section" style="text-align:center;">
+      <div style="color:#64748b; font-size:14px;">กำลังตรวจสอบ...</div>
+    </div>
+  </main>
+
+  <div class="page-footer">[BRAND_NAME]</div>
+
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/api.js"></script>
+<script src="js/utils.js"></script>
+<script>
+let userProfile = null;
+
+(async function init() {
+  const liffId = (window.PAYROLL_CONFIG && window.PAYROLL_CONFIG.LIFF_ID) ||
+                 Utils.getQueryParam('liffId') || '';
+  try {
+    await Auth.init(liffId);
+    if (Auth.isMock()) document.getElementById('mock-banner').classList.add('visible');
+
+    userProfile = await Auth.getProfile();
+
+    // If already paired, no need to repair
+    const me = await Api.getMe(Auth.getIDToken());
+    if (me.emp_code) {
+      document.getElementById('main').innerHTML = `
+        <div class="alert success">
+          <div style="font-weight:600; font-size:16px;">บัญชีนี้ผูกอยู่แล้ว</div>
+          <div style="margin-top:6px; font-size:14px;">
+            ${me.display_name || me.emp_code} · ${me.role}
+          </div>
+        </div>
+        <button class="btn-primary" onclick="Auth.navTo('index.html')">กลับเมนูหลัก</button>
+      `;
+      return;
+    }
+
+    renderForm();
+  } catch (err) {
+    document.getElementById('main').innerHTML = `
+      <div class="alert error">${Utils.errorToMessage(err.message || String(err))}</div>
+      <button class="btn-secondary" onclick="location.reload()">ลองใหม่</button>
+    `;
+  }
+})();
+
+function renderForm() {
+  document.getElementById('main').innerHTML = `
+    <div class="alert warning" style="text-align:left;">
+      <div style="font-weight:600;">⚠ อ่านก่อนใช้</div>
+      <div style="font-size:13px; margin-top:6px; line-height:1.5;">
+        ฟีเจอร์นี้ใช้เมื่อคุณ <b>เปลี่ยน LINE account</b> และต้องการผูกบัญชีใหม่
+        แทนของเดิม — แอดมินต้องอนุมัติคำขอนี้ก่อน
+      </div>
+    </div>
+
+    <div class="form-section">
+      <label class="form-label">รหัสพนักงาน (เดิม)</label>
+      <input id="emp-input" class="form-input emp-input" placeholder="เช่น EMP001" autocomplete="off">
+      <div class="form-hint">รหัสที่คุณเคยใช้ก่อนเปลี่ยน LINE</div>
+
+      <label class="form-label" style="margin-top:16px;">เหตุผล</label>
+      <textarea id="reason-input" class="form-input" rows="3"
+                placeholder="เช่น เปลี่ยนเบอร์ใหม่ · LINE เก่าหาย · ฯลฯ"
+                style="font-family:inherit; resize:vertical; min-height:88px;"></textarea>
+      <div class="form-hint">แอดมินจะเห็นเหตุผลนี้ตอนพิจารณา</div>
+
+      <div style="margin-top:16px; padding:12px; background:#f8fafc; border-radius:8px; font-size:12px; color:#64748b;">
+        <div><b>LINE Account ใหม่ของคุณ:</b></div>
+        <div style="margin-top:4px;">${userProfile.displayName}</div>
+      </div>
+    </div>
+
+    <button id="submit-btn" class="btn-primary">ส่งคำขอ</button>
+
+    <p id="status-message" class="status-message"></p>
+  `;
+  document.getElementById('submit-btn').addEventListener('click', submit);
+}
+
+async function submit() {
+  const status = document.getElementById('status-message');
+  const btn = document.getElementById('submit-btn');
+  const empCode = document.getElementById('emp-input').value.trim().toUpperCase();
+  const reason = document.getElementById('reason-input').value.trim();
+
+  Utils.clearStatus(status);
+  if (!empCode) { Utils.showError(status, 'กรุณากรอกรหัสพนักงาน'); return; }
+  if (!reason || reason.length < 5) {
+    Utils.showError(status, 'กรุณาระบุเหตุผล (อย่างน้อย 5 ตัวอักษร)');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'กำลังส่ง...';
+
+  try {
+    const result = await Api.requestRepair(Auth.getIDToken(), { emp_code: empCode, reason });
+    document.getElementById('main').innerHTML = `
+      <div class="alert success">
+        <div style="font-size:32px; margin-bottom:8px;">📨</div>
+        <div style="font-weight:600; font-size:16px;">ส่งคำขอแล้ว</div>
+        <div style="margin-top:8px; font-size:13px; line-height:1.6;">
+          แอดมินจะได้รับการแจ้งเตือนใน LINE<br>
+          เมื่ออนุมัติ ระบบจะส่งรหัสผูกใหม่ให้คุณ
+        </div>
+        <div style="margin-top:12px; font-family:'JetBrains Mono'; font-size:11px; color:#14532d;">
+          ref: ${result.change_id}
+        </div>
+      </div>
+      <button class="btn-secondary" onclick="Auth.close()">ปิดหน้านี้</button>
+    `;
+  } catch (err) {
+    Utils.showError(status, Utils.errorToMessage(err.message || String(err)));
+    btn.disabled = false;
+    btn.textContent = 'ส่งคำขอ';
+  }
+}
+</script>
+</body>
+</html>

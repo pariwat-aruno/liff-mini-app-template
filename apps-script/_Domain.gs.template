@@ -1,0 +1,73 @@
+/**
+ * _Domain.gs.template — Business logic template (RENAME ME)
+ *
+ * INSTRUCTIONS:
+ *   1. Rename this file to <YourDomain>.gs (e.g. Checkin.gs, Order.gs)
+ *   2. Implement your domain functions
+ *   3. Register new actions in Code.gs HANDLERS map
+ *   4. (Optional) Register pending change handlers via registerChangeHandler_
+ *   5. (Optional) Define _projectCapabilities_ to add role capabilities
+ *   6. (Optional) Define _projectTextCommand_ for LINE chat commands
+ *   7. (Optional) Define _projectPostback_ for custom Flex buttons
+ *
+ * This file is a STUB — replace contents with your business logic.
+ */
+
+/* ============================================================
+ * Example: Domain handlers
+ * ============================================================ */
+
+// function handleMyDomainAction_(payload, ctx) {
+//   requireRole_(ctx, ROLES.STAFF);
+//   // ... your logic ...
+//   return { ok: true, result: '...' };
+// }
+
+/* ============================================================
+ * Optional hooks (uncomment to use)
+ * ============================================================ */
+
+/**
+ * Project-specific capabilities for each role.
+ * Returned values are merged with foundation capabilities.
+ */
+// function _projectCapabilities_(role) {
+//   const map = {
+//     staff: ['mydomain.read', 'mydomain.submit'],
+//     hr:    ['mydomain.list', 'mydomain.review'],
+//     owner: ['mydomain.*'],
+//   };
+//   return map[role] || [];
+// }
+
+/**
+ * Project-specific LINE chat commands.
+ * Return true if you handled it.
+ */
+// function _projectTextCommand_(event) {
+//   const text = event.message.text;
+//   if (text === '/mycommand') {
+//     replyText(event.replyToken, 'My response');
+//     return true;
+//   }
+//   return false;
+// }
+
+/**
+ * Project-specific postback handler (Flex button clicks).
+ */
+// function _projectPostback_(event, params) {
+//   if (params.action === 'my_custom_action') {
+//     // handle it
+//   }
+// }
+
+/* ============================================================
+ * Register pending change handlers (if your project uses them)
+ * ============================================================ */
+
+// registerChangeHandler_('my_change_type', function(change, ctx) {
+//   const data = safeJsonParse_(change.change_data, {});
+//   // apply the change ...
+//   return { ok: true };
+// });

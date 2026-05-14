@@ -1,0 +1,396 @@
+/* style.css — Shared styles for all LIFF pages (FOUNDATION) */
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: 'Prompt', system-ui, -apple-system, sans-serif;
+  padding-bottom: env(safe-area-inset-bottom);
+  margin: 0;
+}
+
+.font-brand {
+  font-family: 'Poppins', 'Prompt', sans-serif;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ============================================================
+   Mock banner — shown during local dev
+   ============================================================ */
+.mock-banner {
+  display: none;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 12px;
+  padding: 6px 16px;
+  text-align: center;
+  font-weight: 500;
+}
+.mock-banner.visible { display: block; }
+
+/* ============================================================
+   Header (gradient)
+   ============================================================ */
+.header {
+  background: linear-gradient(to bottom right, #0F6E56, #1D9E75);
+  color: white;
+  text-align: center;
+  padding: 28px 24px 40px;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.header-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.95);
+  padding: 4px;
+}
+
+.header-title {
+  margin-top: 28px;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.header-subtitle {
+  font-size: 14px;
+  margin-top: 6px;
+  opacity: 0.85;
+}
+
+.header-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+/* ============================================================
+   Cards
+   ============================================================ */
+.menu-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #fff;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgb(226, 232, 240);
+  text-decoration: none;
+  color: inherit;
+  transition: transform 120ms;
+}
+.menu-card:active {
+  transform: scale(0.99);
+}
+.menu-card[hidden] { display: none; }
+.menu-card + .menu-card { margin-top: 10px; }
+
+.icon-box {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.icon-box.amber  { background: #fef3c7; color: #92400e; }
+.icon-box.teal   { background: #ccfbf1; color: #0F6E56; }
+.icon-box.blue   { background: #dbeafe; color: #1e40af; }
+.icon-box.purple { background: #ede9fe; color: #6d28d9; }
+.icon-box.rose   { background: #ffe4e6; color: #be123c; }
+.icon-box.slate  { background: #f1f5f9; color: #475569; }
+
+.card-title {
+  font-weight: 600;
+  color: #0f172a;
+  font-size: 15px;
+}
+
+.card-subtitle {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* ============================================================
+   Section headings
+   ============================================================ */
+.section-heading {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: #64748b;
+  padding-left: 4px;
+  margin: 20px 0 10px;
+}
+.section-heading:first-child { margin-top: 0; }
+
+/* ============================================================
+   Pills (role badges)
+   ============================================================ */
+.pill {
+  display: inline-block;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  margin-left: 6px;
+  vertical-align: 1px;
+}
+.pill.staff  { background: #dbeafe; color: #1e40af; }
+.pill.hr     { background: #ede9fe; color: #6d28d9; }
+.pill.owner  { background: #fef3c7; color: #92400e; }
+
+/* ============================================================
+   Forms
+   ============================================================ */
+.form-section {
+  background: white;
+  border-radius: 14px;
+  border: 1px solid rgb(226, 232, 240);
+  padding: 20px;
+  margin-bottom: 12px;
+}
+
+.form-label {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.form-input,
+.form-select {
+  width: 100%;
+  min-height: 44px;
+  font-size: 16px;
+  background: white;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: #0f172a;
+}
+.form-input:focus,
+.form-select:focus {
+  outline: none;
+  border-color: #0F6E56;
+  box-shadow: 0 0 0 3px rgba(15, 110, 86, 0.15);
+}
+
+.form-input.code-input {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 28px;
+  text-align: center;
+  letter-spacing: 0.4em;
+  font-weight: 600;
+}
+
+.form-input.emp-input {
+  font-family: 'JetBrains Mono', monospace;
+  text-transform: uppercase;
+}
+
+.form-hint {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 8px;
+}
+
+/* ============================================================
+   Buttons
+   ============================================================ */
+.btn-primary {
+  width: 100%;
+  background: linear-gradient(to bottom right, #0F6E56, #1D9E75);
+  color: white;
+  padding: 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: none;
+  box-shadow: 0 4px 14px rgba(15, 110, 86, 0.3);
+  cursor: pointer;
+  transition: transform 120ms;
+}
+.btn-primary:active {
+  transform: scale(0.99);
+}
+.btn-primary:disabled {
+  background: #94a3b8;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  width: 100%;
+  background: white;
+  color: #475569;
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: center;
+}
+
+.btn-danger {
+  background: #dc2626;
+  color: white;
+  border: none;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* ============================================================
+   Status / Alerts
+   ============================================================ */
+.status-message {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  min-height: 24px;
+  margin-top: 8px;
+}
+.status-message.error { color: #dc2626; }
+.status-message.success { color: #059669; }
+
+.alert {
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+}
+.alert.warning {
+  background: #fef3c7;
+  border: 2px solid #fbbf24;
+  color: #92400e;
+}
+.alert.success {
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  color: #14532d;
+}
+.alert.error {
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+}
+
+/* ============================================================
+   Pairing-code display
+   ============================================================ */
+.pairing-display {
+  background: white;
+  border-radius: 14px;
+  padding: 24px;
+  border: 1px solid rgb(226, 232, 240);
+  margin-bottom: 12px;
+}
+
+.pairing-code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-align: center;
+  color: #0F6E56;
+  margin: 12px 0;
+}
+
+.copy-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+.copy-row:last-child { border-bottom: none; }
+
+.copy-row .label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #94a3b8;
+}
+
+.copy-row .value {
+  font-weight: 500;
+  color: #0f172a;
+  margin-top: 4px;
+}
+
+.copy-btn {
+  background: #f1f5f9;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   Layout container
+   ============================================================ */
+.container {
+  max-width: 480px;
+  margin: 0 auto;
+  padding-bottom: 40px;
+}
+
+main.with-overlap {
+  padding: 0 16px;
+  margin-top: -16px;
+}
+
+main.with-overlap > * {
+  margin-bottom: 12px;
+}
+
+/* ============================================================
+   Footer
+   ============================================================ */
+.page-footer {
+  text-align: center;
+  font-size: 11px;
+  color: #94a3b8;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-top: 40px;
+  padding-bottom: 16px;
+}

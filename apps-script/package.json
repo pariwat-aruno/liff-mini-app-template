@@ -1,0 +1,14 @@
+{
+  "name": "liff-mini-app-template-backend",
+  "version": "1.0.0",
+  "description": "Apps Script backend for LIFF 4-role mini-app template",
+  "scripts": {
+    "push": "clasp push --force",
+    "open": "clasp open",
+    "logs": "clasp logs --watch",
+    "version": "clasp version"
+  },
+  "devDependencies": {
+    "@google/clasp": "^2.4.2"
+  }
+}

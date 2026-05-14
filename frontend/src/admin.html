@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>เครื่องมือแอดมิน — [BRAND_NAME]</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Poppins:wght@500;600;700&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .tab-bar { display:grid; grid-template-columns:repeat(3,1fr); gap:4px;
+             background:white; border-radius:14px; padding:4px;
+             border:1px solid #e2e8f0; margin-bottom:12px; }
+  .tab-btn { background:transparent; border:none; padding:10px 4px; border-radius:10px;
+             font-size:13px; font-weight:500; color:#475569; cursor:pointer; }
+  .tab-btn[aria-selected="true"] { background:#0F6E56; color:white; }
+  .pending-item { background:white; border:1px solid #e2e8f0; border-radius:12px;
+                  padding:14px; margin-bottom:10px; }
+  .pending-item .meta { font-size:11px; color:#94a3b8; letter-spacing:0.05em; }
+  .pending-item .title { font-weight:600; margin-top:4px; }
+  .pending-item .actions { display:flex; gap:6px; margin-top:12px; }
+  .pending-item .actions button { flex:1; padding:8px; font-size:13px; border-radius:8px;
+                                  border:none; font-weight:500; cursor:pointer; }
+  .audit-item { font-size:12px; padding:8px 0; border-bottom:1px solid #f1f5f9;
+                color:#475569; }
+  .audit-item .ts { color:#94a3b8; font-size:11px; }
+  .empty-state { text-align:center; padding:32px; color:#94a3b8; font-size:14px; }
+</style>
+</head>
+<body style="background:#f1f5f9; color:#0f172a; min-height:100vh; margin:0;">
+
+<div class="container">
+
+  <div id="mock-banner" class="mock-banner">Local dev mode — using mock LIFF</div>
+
+  <header class="header">
+    <div class="header-brand">
+      <img src="img/logo.jpg" alt="" class="header-logo" onerror="this.style.display='none'">
+      <div style="line-height:1.2; text-align:left;">
+        <div class="font-brand" style="font-weight:700; font-size:18px;">[BRAND_NAME]</div>
+      </div>
+    </div>
+    <div style="margin-top:24px;">
+      <div class="header-eyebrow">เครื่องมือแอดมิน</div>
+      <h1 class="header-title">ศูนย์ควบคุม</h1>
+      <div class="header-subtitle">รหัสผูก · คำขออนุมัติ · audit</div>
+    </div>
+  </header>
+
+  <main class="with-overlap" id="main">
+
+    <div class="tab-bar" role="tablist">
+      <button class="tab-btn" data-tab="pending" aria-selected="true">📋 รออนุมัติ</button>
+      <button class="tab-btn" data-tab="codes" aria-selected="false">🔑 รหัสผูก</button>
+      <button class="tab-btn" data-tab="audit" aria-selected="false">📜 Audit</button>
+    </div>
+
+    <div id="tab-content">
+      <div class="empty-state">กำลังโหลด...</div>
+    </div>
+
+  </main>
+
+  <div class="page-footer">[BRAND_NAME]</div>
+
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/api.js"></script>
+<script src="js/utils.js"></script>
+<script>
+let me = null;
+let activeTab = 'pending';
+
+(async function init() {
+  const liffId = (window.PAYROLL_CONFIG && window.PAYROLL_CONFIG.LIFF_ID) ||
+                 Utils.getQueryParam('liffId') || '';
+  try {
+    await Auth.init(liffId);
+    if (Auth.isMock()) document.getElementById('mock-banner').classList.add('visible');
+
+    me = await Api.getMe(Auth.getIDToken());
+    if (!window.hasCapability(me.capabilities, 'hr.list') &&
+        !window.hasCapability(me.capabilities, 'hr.viewPending') &&
+        me.role !== 'hr' && me.role !== 'owner') {
+      document.getElementById('main').innerHTML = `
+        <div class="alert error">หน้านี้สำหรับแอดมินเท่านั้น</div>
+        <button class="btn-secondary" onclick="Auth.navTo('index.html')">กลับเมนูหลัก</button>
+      `;
+      return;
+    }
+
+    // Bind tabs
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+    });
+
+    loadPending();
+  } catch (err) {
+    document.getElementById('main').innerHTML =
+      `<div class="alert error">${Utils.errorToMessage(err.message || String(err))}</div>`;
+  }
+})();
+
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.setAttribute('aria-selected', b.dataset.tab === tab ? 'true' : 'false');
+  });
+  if (tab === 'pending') loadPending();
+  if (tab === 'codes') loadCodes();
+  if (tab === 'audit') loadAudit();
+}
+
+/* ============================================================
+ * Pending changes tab
+ * ============================================================ */
+async function loadPending() {
+  const el = document.getElementById('tab-content');
+  el.innerHTML = '<div class="empty-state">กำลังโหลด...</div>';
+  try {
+    const items = await Api.listPendingChanges(Auth.getIDToken());
+    if (items.length === 0) {
+      el.innerHTML = '<div class="empty-state">ไม่มีคำขอรออนุมัติ</div>';
+      return;
+    }
+    el.innerHTML = items.map(item => `
+      <div class="pending-item" data-id="${item.change_id}">
+        <div class="meta">${item.proposed_at} · ${item.proposed_role}</div>
+        <div class="title">${humanType(item.change_type)}</div>
+        <div style="font-size:13px; color:#64748b; margin-top:4px;">
+          target: ${item.target_id || '-'}
+        </div>
+        <div style="font-size:12px; color:#94a3b8; margin-top:6px;
+                    background:#f8fafc; padding:8px; border-radius:6px; font-family:monospace;">
+          ${JSON.stringify(item.change_data, null, 2)}
+        </div>
+        ${me.role === 'owner' ? `
+          <div class="actions">
+            <button style="background:#0F6E56; color:white;"
+                    onclick="decide('${item.change_id}', 'approve')">อนุมัติ</button>
+            <button style="background:#dc2626; color:white;"
+                    onclick="decide('${item.change_id}', 'reject')">ปฏิเสธ</button>
+          </div>
+        ` : `
+          <div class="meta" style="margin-top:8px;">รอเจ้าของอนุมัติ</div>
+        `}
+      </div>
+    `).join('');
+  } catch (err) {
+    el.innerHTML = `<div class="alert error">${Utils.errorToMessage(err.message || String(err))}</div>`;
+  }
+}
+
+async function decide(changeId, action) {
+  const note = action === 'reject' ? (prompt('เหตุผล (optional):') || '') : '';
+  try {
+    if (action === 'approve') {
+      await Api.approvePendingChange(Auth.getIDToken(), { change_id: changeId, note });
+    } else {
+      await Api.rejectPendingChange(Auth.getIDToken(), { change_id: changeId, note });
+    }
+    loadPending();
+  } catch (err) {
+    alert(Utils.errorToMessage(err.message || String(err)));
+  }
+}
+
+/* ============================================================
+ * Pairing codes tab
+ * ============================================================ */
+async function loadCodes() {
+  const el = document.getElementById('tab-content');
+  el.innerHTML = '<div class="empty-state">กำลังโหลด...</div>';
+  try {
+    const codes = await Api.listPairingCodes(Auth.getIDToken());
+    if (codes.length === 0) {
+      el.innerHTML = '<div class="empty-state">ไม่มีรหัสที่รอใช้</div>';
+      return;
+    }
+    el.innerHTML = codes.map(c => {
+      const isExpiringSoon = c.expires_at && (new Date(c.expires_at) - new Date()) < 3600 * 1000;
+      return `
+        <div class="pending-item">
+          <div class="meta">${c.created_at} · by ${c.created_by ? c.created_by.substring(0, 12) + '...' : 'system'}</div>
+          <div class="title" style="font-family:'JetBrains Mono'; font-size:22px; color:#0F6E56;">
+            ${c.code} · ${c.emp_code}
+          </div>
+          <div style="font-size:12px; color:${isExpiringSoon ? '#dc2626' : '#64748b'}; margin-top:4px;">
+            หมดอายุ ${c.expires_at}${isExpiringSoon ? ' ⚠' : ''}
+          </div>
+          <div class="actions">
+            <button style="background:#0F6E56; color:white;" onclick="copyShare('${c.emp_code}', '${c.code}', '${c.liff_link}')">📋 คัดลอกข้อความ</button>
+            <button style="background:#f1f5f9; color:#475569;" onclick="revokeCode('${c.code}')">ยกเลิก</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (err) {
+    el.innerHTML = `<div class="alert error">${Utils.errorToMessage(err.message || String(err))}</div>`;
+  }
+}
+
+function copyShare(empCode, code, link) {
+  const text =
+    `ผูกบัญชี [BRAND_NAME]\n\n` +
+    `รหัสพนักงาน: ${empCode}\n` +
+    `รหัสผูก: ${code}\n\n` +
+    `แตะลิงก์: ${link}`;
+  Utils.copyToClipboard(text, event.currentTarget);
+}
+
+async function revokeCode(code) {
+  if (!confirm('ยกเลิกรหัสนี้?')) return;
+  try {
+    await Api.revokePairingCode(Auth.getIDToken(), { code, reason: 'manual' });
+    loadCodes();
+  } catch (err) {
+    alert(Utils.errorToMessage(err.message || String(err)));
+  }
+}
+
+/* ============================================================
+ * Audit tab (OWNER only)
+ * ============================================================ */
+async function loadAudit() {
+  const el = document.getElementById('tab-content');
+  if (me.role !== 'owner') {
+    el.innerHTML = '<div class="empty-state">หน้านี้สำหรับเจ้าของเท่านั้น</div>';
+    return;
+  }
+  el.innerHTML = '<div class="empty-state">กำลังโหลด...</div>';
+  try {
+    const entries = await Api.getRecentAudit(Auth.getIDToken(), { limit: 50 });
+    if (entries.length === 0) {
+      el.innerHTML = '<div class="empty-state">ไม่มี audit entry</div>';
+      return;
+    }
+    el.innerHTML = `<div class="form-section">` +
+      entries.map(e => `
+        <div class="audit-item">
+          <div class="ts">${e.timestamp} · ${e.actor_role || '-'}</div>
+          <div><b>${e.action}</b> on ${e.target_type}/${e.target_id}</div>
+          ${e.after ? `<div style="color:#94a3b8; font-size:11px; margin-top:2px;">${e.after}</div>` : ''}
+        </div>
+      `).join('') +
+      `</div>`;
+  } catch (err) {
+    el.innerHTML = `<div class="alert error">${Utils.errorToMessage(err.message || String(err))}</div>`;
+  }
+}
+
+function humanType(type) {
+  const map = {
+    repair_request: 'ขอผูกบัญชี LINE ใหม่',
+  };
+  return map[type] || type;
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>เพิ่มพนักงาน — [BRAND_NAME]</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Poppins:wght@500;600;700&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body style="background:#f1f5f9; color:#0f172a; min-height:100vh; margin:0;">
+
+<div class="container">
+
+  <div id="mock-banner" class="mock-banner">Local dev mode — using mock LIFF</div>
+
+  <header class="header">
+    <div class="header-brand">
+      <img src="img/logo.jpg" alt="" class="header-logo" onerror="this.style.display='none'">
+      <div style="line-height:1.2; text-align:left;">
+        <div class="font-brand" style="font-weight:700; font-size:18px;">[BRAND_NAME]</div>
+      </div>
+    </div>
+    <div style="margin-top:24px;">
+      <div class="header-eyebrow">เพิ่มพนักงาน · เจ้าของ</div>
+      <h1 class="header-title">พนักงานใหม่</h1>
+      <div class="header-subtitle">กรอก + ออกรหัสผูกอัตโนมัติ</div>
+    </div>
+  </header>
+
+  <main class="with-overlap" id="main">
+    <div class="form-section" style="text-align:center;">
+      <div style="color:#64748b; font-size:14px;">กำลังตรวจสิทธิ์...</div>
+    </div>
+  </main>
+
+  <div class="page-footer">[BRAND_NAME]</div>
+
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/api.js"></script>
+<script src="js/utils.js"></script>
+<script>
+(async function init() {
+  const liffId = (window.PAYROLL_CONFIG && window.PAYROLL_CONFIG.LIFF_ID) ||
+                 Utils.getQueryParam('liffId') || '';
+  try {
+    await Auth.init(liffId);
+    if (Auth.isMock()) document.getElementById('mock-banner').classList.add('visible');
+
+    const me = await Api.getMe(Auth.getIDToken());
+    if (me.role !== 'owner' && me.role !== 'hr') {
+      document.getElementById('main').innerHTML = `
+        <div class="alert error">หน้านี้สำหรับแอดมินเท่านั้น</div>
+        <button class="btn-secondary" onclick="Auth.navTo('index.html')">กลับเมนูหลัก</button>
+      `;
+      return;
+    }
+
+    renderForm(me);
+  } catch (err) {
+    document.getElementById('main').innerHTML =
+      `<div class="alert error">${Utils.errorToMessage(err.message || String(err))}</div>`;
+  }
+})();
+
+function renderForm(me) {
+  // Owner can set role to anything; HR can only create staff
+  const roleOptions = me.role === 'owner'
+    ? `<option value="staff">staff · พนักงานทั่วไป</option>
+       <option value="hr">hr · แอดมิน</option>
+       <option value="owner">owner · เจ้าของ</option>`
+    : `<option value="staff">staff · พนักงานทั่วไป</option>`;
+
+  document.getElementById('main').innerHTML = `
+    <div class="form-section">
+      <label class="form-label">รหัสพนักงาน *</label>
+      <input id="emp-code" class="form-input emp-input" placeholder="เช่น EMP006" autocomplete="off" required>
+      <div class="form-hint">ตัวอักษรพิมพ์ใหญ่ ตัวเลข - และ _ เริ่มด้วยตัวอักษร</div>
+
+      <label class="form-label" style="margin-top:16px;">ชื่อ *</label>
+      <input id="first-name" class="form-input" placeholder="ชื่อจริง" required>
+
+      <label class="form-label" style="margin-top:16px;">นามสกุล *</label>
+      <input id="last-name" class="form-input" placeholder="นามสกุล" required>
+
+      <label class="form-label" style="margin-top:16px;">บทบาท *</label>
+      <select id="intended-role" class="form-select">${roleOptions}</select>
+
+      <label class="form-label" style="margin-top:16px;">แผนก</label>
+      <input id="department" class="form-input" placeholder="เช่น Sales, Operations">
+
+      <label class="form-label" style="margin-top:16px;">ตำแหน่ง</label>
+      <input id="position" class="form-input" placeholder="เช่น Sales Officer">
+    </div>
+
+    <button id="submit-btn" class="btn-primary">สร้าง + ออกรหัสผูก</button>
+
+    <p id="status-message" class="status-message"></p>
+  `;
+  document.getElementById('submit-btn').addEventListener('click', submit);
+}
+
+async function submit() {
+  const status = document.getElementById('status-message');
+  const btn = document.getElementById('submit-btn');
+
+  const payload = {
+    emp_code: document.getElementById('emp-code').value.trim().toUpperCase(),
+    first_name: document.getElementById('first-name').value.trim(),
+    last_name: document.getElementById('last-name').value.trim(),
+    intended_role: document.getElementById('intended-role').value,
+    department: document.getElementById('department').value.trim(),
+    position: document.getElementById('position').value.trim(),
+  };
+
+  Utils.clearStatus(status);
+  if (!payload.emp_code || !payload.first_name || !payload.last_name) {
+    Utils.showError(status, 'กรอกข้อมูลให้ครบ (รหัส + ชื่อ + นามสกุล)');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'กำลังสร้าง...';
+
+  try {
+    const result = await Api.onboardEmployee(Auth.getIDToken(), payload);
+    renderSuccess(result);
+  } catch (err) {
+    Utils.showError(status, Utils.errorToMessage(err.message || String(err)));
+    btn.disabled = false;
+    btn.textContent = 'สร้าง + ออกรหัสผูก';
+  }
+}
+
+function renderSuccess(result) {
+  const shareText =
+    `ผูกบัญชี [BRAND_NAME]\n\n` +
+    `ชื่อ: ${result.full_name}\n` +
+    `รหัสพนักงาน: ${result.emp_code}\n` +
+    `รหัสผูก: ${result.pairing_code}\n` +
+    `อายุ: ${result.expires_in_hours} ชั่วโมง\n\n` +
+    `แตะลิงก์: ${result.liff_link}`;
+
+  document.getElementById('main').innerHTML = `
+    <div class="alert success">
+      <div style="font-size:32px;">✅</div>
+      <div style="font-weight:600; margin-top:6px;">สร้างพนักงานสำเร็จ</div>
+      <div style="font-size:14px; margin-top:4px;">${result.full_name} (${result.intended_role})</div>
+    </div>
+
+    <div class="pairing-display">
+      <div class="copy-row">
+        <div>
+          <div class="label">รหัสพนักงาน</div>
+          <div class="value font-mono">${result.emp_code}</div>
+        </div>
+        <button class="copy-btn" onclick="Utils.copyToClipboard('${result.emp_code}', event.currentTarget)">คัดลอก</button>
+      </div>
+      <div class="copy-row">
+        <div>
+          <div class="label">รหัสผูก (อายุ ${result.expires_in_hours} ชม.)</div>
+          <div class="value font-mono" style="font-size:24px; color:#0F6E56;">${result.pairing_code}</div>
+        </div>
+        <button class="copy-btn" onclick="Utils.copyToClipboard('${result.pairing_code}', event.currentTarget)">คัดลอก</button>
+      </div>
+      <div class="copy-row">
+        <div style="min-width:0; flex:1;">
+          <div class="label">ลิงก์</div>
+          <div class="value" style="font-size:12px; word-break:break-all; line-height:1.4;">${result.liff_link}</div>
+        </div>
+        <button class="copy-btn" onclick="Utils.copyToClipboard('${result.liff_link}', event.currentTarget)">คัดลอก</button>
+      </div>
+    </div>
+
+    <button class="btn-primary" id="share-all-btn">📋 คัดลอกข้อความส่ง LINE ทั้งหมด</button>
+
+    <div class="btn-row" style="margin-top:12px;">
+      <button class="btn-secondary" onclick="location.reload()">เพิ่มอีกคน</button>
+      <button class="btn-secondary" style="background:#0f172a; color:white;"
+              onclick="Auth.navTo('index.html')">กลับเมนู</button>
+    </div>
+  `;
+  document.getElementById('share-all-btn').addEventListener('click', (e) => {
+    Utils.copyToClipboard(shareText, e.currentTarget);
+  });
+  window.__shareText = shareText;
+}
+</script>
+</body>
+</html>
